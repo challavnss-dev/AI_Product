@@ -1,4 +1,3 @@
-```python
 import os
 import json
 from datetime import datetime
@@ -808,4 +807,3 @@ st.caption(
     "Demo application. AI output is not a medical diagnosis "
     "and must be reviewed by qualified healthcare professionals."
 )
-```
