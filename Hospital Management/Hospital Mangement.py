@@ -1,7 +1,9 @@
-import streamlit as st
+```python
 import os
 import json
+import streamlit as st
 from groq import Groq
+
 
 # =========================================================
 # PAGE CONFIGURATION
@@ -14,7 +16,10 @@ st.set_page_config(
 )
 
 st.title("🏥 AI Hospital Management System")
-st.write("Manage patients, appointments, medical records, and hospital workflows with AI.")
+st.write(
+    "Manage patients, appointments, and AI-assisted hospital records."
+)
+
 
 # =========================================================
 # GROQ API CONFIGURATION
@@ -23,41 +28,47 @@ st.write("Manage patients, appointments, medical records, and hospital workflows
 api_key = os.environ.get("GROQ_API_KEY")
 
 if not api_key:
-    if "GROQ_API_KEY" in st.secrets:
+    try:
         api_key = st.secrets["GROQ_API_KEY"]
+    except Exception:
+        api_key = None
 
 if not api_key:
-    st.error(
-        "⚠️ Groq API Key not found! "
-        "Please configure GROQ_API_KEY in your environment or Streamlit secrets."
+    st.error("⚠️ GROQ_API_KEY not found.")
+    st.info(
+        "Please add GROQ_API_KEY to Streamlit Cloud Secrets."
     )
     st.stop()
 
 client = Groq(api_key=api_key)
 
-# =========================================================
-# TABS
-# =========================================================
-
-tab1, tab2, tab3, tab4 = st.tabs([
-    "👤 Patient Management",
-    "📅 Appointment Management",
-    "🤖 AI Patient Summary",
-    "💡 Hospital MVP Scoper"
-])
-
 
 # =========================================================
-# TAB 1: PATIENT MANAGEMENT
+# APPLICATION TABS
+# =========================================================
+
+tab1, tab2, tab3, tab4 = st.tabs(
+    [
+        "👤 Patient Management",
+        "📅 Appointment Management",
+        "🤖 AI Patient Summary",
+        "💡 Hospital MVP Scoper"
+    ]
+)
+
+
+# =========================================================
+# TAB 1 - PATIENT MANAGEMENT
 # =========================================================
 
 with tab1:
 
-    st.header("👤 Patient Registration")
+    st.header("👤 Patient Management")
 
     col1, col2 = st.columns(2)
 
     with col1:
+
         patient_name = st.text_input(
             "Patient Name",
             placeholder="Enter patient name"
@@ -67,19 +78,26 @@ with tab1:
             "Age",
             min_value=0,
             max_value=120,
-            value=25
+            value=25,
+            step=1
         )
 
         gender = st.selectbox(
             "Gender",
-            ["Male", "Female", "Other", "Prefer not to say"]
+            [
+                "Male",
+                "Female",
+                "Other",
+                "Prefer not to say"
+            ]
         )
 
-    with col2:
         phone = st.text_input(
             "Phone Number",
             placeholder="Enter phone number"
         )
+
+    with col2:
 
         blood_group = st.selectbox(
             "Blood Group",
@@ -98,47 +116,54 @@ with tab1:
 
         allergies = st.text_area(
             "Known Allergies",
-            placeholder="Enter known allergies or 'None'"
+            placeholder="Enter allergies or None"
         )
 
-    medical_history = st.text_area(
-        "Medical History",
-        height=120,
-        placeholder="Enter relevant medical history..."
-    )
+        medical_history = st.text_area(
+            "Medical History",
+            placeholder="Enter medical history"
+        )
 
     symptoms = st.text_area(
-        "Current Symptoms",
-        height=120,
-        placeholder="Enter patient's reported symptoms..."
+        "Reported Symptoms",
+        height=100,
+        placeholder="Enter symptoms reported by the patient"
     )
 
-    if st.button("Register Patient", type="primary"):
+    if st.button(
+        "Register Patient",
+        type="primary",
+        key="register_patient"
+    ):
 
-        if not patient_name:
+        if not patient_name.strip():
+
             st.warning("Please enter the patient's name.")
 
         else:
+
             patient_data = {
-                "patient_name": patient_name,
-                "age": age,
-                "gender": gender,
-                "phone": phone,
-                "blood_group": blood_group,
-                "allergies": allergies,
-                "medical_history": medical_history,
-                "symptoms": symptoms
+                "Patient Name": patient_name,
+                "Age": age,
+                "Gender": gender,
+                "Phone": phone,
+                "Blood Group": blood_group,
+                "Allergies": allergies,
+                "Medical History": medical_history,
+                "Reported Symptoms": symptoms
             }
 
-            st.success("✅ Patient registered successfully!")
+            st.success(
+                "✅ Patient registered successfully!"
+            )
 
-            st.subheader("Patient Record")
+            st.subheader("Patient Details")
 
             st.json(patient_data)
 
 
 # =========================================================
-# TAB 2: APPOINTMENT MANAGEMENT
+# TAB 2 - APPOINTMENT MANAGEMENT
 # =========================================================
 
 with tab2:
@@ -167,10 +192,10 @@ with tab2:
                 "Cardiology",
                 "Neurology",
                 "Orthopedics",
-                "Dermatology",
                 "Pediatrics",
-                "Gynecology",
+                "Dermatology",
                 "ENT",
+                "Gynecology",
                 "Emergency"
             ]
         )
@@ -187,133 +212,188 @@ with tab2:
 
         appointment_reason = st.text_area(
             "Reason for Appointment",
-            placeholder="Enter reason..."
+            placeholder="Enter reason for appointment"
         )
 
-    if st.button("Schedule Appointment", type="primary"):
+    if st.button(
+        "Schedule Appointment",
+        type="primary",
+        key="schedule_appointment"
+    ):
 
-        if not appointment_patient or not doctor_name:
+        if (
+            not appointment_patient.strip()
+            or not doctor_name.strip()
+        ):
+
             st.warning(
-                "Please enter both patient name and doctor name."
+                "Please enter both patient and doctor names."
             )
 
         else:
 
-            appointment = {
-                "patient": appointment_patient,
-                "doctor": doctor_name,
-                "department": department,
-                "date": str(appointment_date),
-                "time": str(appointment_time),
-                "reason": appointment_reason
+            appointment_data = {
+                "Patient": appointment_patient,
+                "Doctor": doctor_name,
+                "Department": department,
+                "Date": str(appointment_date),
+                "Time": str(appointment_time),
+                "Reason": appointment_reason
             }
 
-            st.success("✅ Appointment scheduled successfully!")
+            st.success(
+                "✅ Appointment scheduled successfully!"
+            )
 
             st.subheader("Appointment Details")
 
-            st.json(appointment)
+            st.json(appointment_data)
 
 
 # =========================================================
-# TAB 3: AI PATIENT SUMMARY
+# TAB 3 - AI PATIENT SUMMARY
 # =========================================================
 
 with tab3:
 
-    st.header("🤖 AI Patient Record Summarizer")
+    st.header("🤖 AI Patient Summary")
 
     st.info(
-        "Enter existing patient information to generate a structured "
-        "summary for review by authorized hospital staff."
+        "Enter an existing patient record to generate a "
+        "structured administrative summary."
     )
 
     patient_record = st.text_area(
-        "Patient Medical Record",
+        "Patient Record",
         height=300,
-        placeholder="""
-Example:
-
-Patient Name: John Doe
-Age: 45
-Symptoms: Fever, cough
-Medical History: Type 2 Diabetes
-Recent Tests: Blood pressure 130/85
-Doctor Notes: Follow-up recommended
-        """
+        placeholder=(
+            "Example:\n\n"
+            "Patient Name: John Doe\n"
+            "Age: 45\n"
+            "Symptoms: Fever and cough\n"
+            "Medical History: Type 2 Diabetes\n"
+            "Allergies: None reported\n"
+            "Test Results: Temperature 101.2 F\n"
+            "Doctor Notes: Follow-up recommended"
+        )
     )
 
-    if st.button("Generate Patient Summary", type="primary"):
+    if st.button(
+        "Generate AI Summary",
+        type="primary",
+        key="generate_summary"
+    ):
 
-        if not patient_record:
+        if not patient_record.strip():
 
-            st.warning("Please enter a patient record.")
+            st.warning(
+                "Please enter a patient record."
+            )
 
         else:
 
             summary_prompt = f"""
 You are an AI assistant for a hospital management system.
 
-Your task is to organize the supplied patient record into a
-clear and concise medical summary for review by authorized
-healthcare professionals.
+Create a clear and structured summary of the patient
+record provided below.
 
 PATIENT RECORD:
 {patient_record}
 
 STRICT RULES:
 
-1. ONLY use information explicitly provided in the patient record.
-2. Do NOT invent symptoms, diagnoses, medications, test results,
-   allergies, or medical history.
-3. Do NOT make a new medical diagnosis.
-4. Do NOT prescribe medication or treatment.
-5. Clearly identify information that is missing.
-6. Keep the summary professional and concise.
-7. This output is a draft for review by qualified healthcare staff.
+1. Use ONLY information provided in the patient record.
+2. Never invent patient information.
+3. Do not create a medical diagnosis.
+4. Do not prescribe medicines.
+5. Do not recommend treatments.
+6. Do not change test results.
+7. If information is missing, write "Not Provided".
+8. Keep the summary professional and concise.
+9. This is an AI-generated draft and must be reviewed
+   by authorized healthcare professionals.
 
-Use the following structure:
+Use this structure:
 
-Patient Information:
-Presenting Symptoms:
-Medical History:
-Test/Investigation Information:
-Doctor Notes:
-Follow-up Information:
-Missing Information:
+PATIENT INFORMATION:
+- Name:
+- Age:
+- Other Information:
+
+REPORTED SYMPTOMS:
+- 
+
+MEDICAL HISTORY:
+- 
+
+ALLERGIES:
+- 
+
+TEST / INVESTIGATION INFORMATION:
+- 
+
+DOCTOR NOTES:
+- 
+
+FOLLOW-UP INFORMATION:
+- 
+
+MISSING INFORMATION:
+- 
 """
 
-            with st.spinner("Generating patient summary..."):
+            with st.spinner(
+                "Generating AI patient summary..."
+            ):
 
-                res = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "You are a hospital administrative AI assistant. "
-                                "Never invent patient information."
-                            )
-                        },
-                        {
-                            "role": "user",
-                            "content": summary_prompt
-                        }
-                    ],
-                    temperature=0.2
-                )
+                try:
 
-                summary = res.choices[0].message.content
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "You are a hospital "
+                                    "administrative AI assistant. "
+                                    "Never invent medical information."
+                                )
+                            },
+                            {
+                                "role": "user",
+                                "content": summary_prompt
+                            }
+                        ],
+                        temperature=0.2
+                    )
 
-                st.success("✅ Patient summary generated!")
+                    summary = (
+                        response
+                        .choices[0]
+                        .message
+                        .content
+                    )
 
-                st.markdown("### 📋 AI-Generated Summary")
+                    st.success(
+                        "✅ AI summary generated successfully!"
+                    )
 
-                st.markdown(summary)
+                    st.subheader(
+                        "📋 Patient Summary"
+                    )
+
+                    st.markdown(summary)
+
+                except Exception as error:
+
+                    st.error(
+                        f"Error generating summary: {error}"
+                    )
 
 
 # =========================================================
-# TAB 4: HOSPITAL MVP SCOPER
+# TAB 4 - HOSPITAL MVP SCOPER
 # =========================================================
 
 with tab4:
@@ -321,20 +401,20 @@ with tab4:
     st.header("💡 Hospital Management MVP Scoper")
 
     st.write(
-        "Describe your hospital-management idea and let AI "
-        "define a realistic 24-hour hackathon MVP."
+        "Describe your hospital project idea and let AI "
+        "create a realistic 24-hour hackathon MVP."
     )
 
     raw_idea = st.text_input(
-        "Enter your hospital project idea:",
+        "Hospital Project Idea",
         placeholder=(
-            "e.g., An AI system that helps hospitals manage "
-            "patients and appointments"
+            "Example: An application to manage patients "
+            "and hospital appointments"
         )
     )
 
     tools_available = st.multiselect(
-        "Select tools you know how to use:",
+        "Available Technology",
         [
             "Python",
             "Streamlit",
@@ -353,42 +433,51 @@ with tab4:
         ]
     )
 
-    if st.button("Scope Hospital MVP", type="primary"):
+    if st.button(
+        "Scope Hospital MVP",
+        type="primary",
+        key="scope_hospital_mvp"
+    ):
 
-        if not raw_idea:
+        if not raw_idea.strip():
 
-            st.warning("Please enter a hospital project idea.")
+            st.warning(
+                "Please enter a hospital project idea."
+            )
 
         elif not tools_available:
 
-            st.warning("Please select at least one technology.")
+            st.warning(
+                "Please select at least one technology."
+            )
 
         else:
 
             scoping_prompt = f"""
 You are a Senior Technical Product Manager.
 
-You are helping a student team build a Hospital Management
-System as a 24-hour hackathon MVP.
+Create a realistic 24-hour hackathon MVP for this
+Hospital Management project.
 
 PROJECT IDEA:
 {raw_idea}
 
-AVAILABLE TECH STACK:
-{', '.join(tools_available)}
+AVAILABLE TECHNOLOGY:
+{", ".join(tools_available)}
 
 INSTRUCTIONS:
 
-1. Identify the core hospital-management problem in one sentence.
+1. Identify the core problem in one sentence.
 2. Define exactly 3 MVP features.
-3. Features must be realistic for a 24-hour hackathon.
-4. Use ONLY the selected technology stack.
-5. Prioritize features useful for hospital staff or patients.
-6. Avoid unnecessary advanced features.
-7. Do not assume hardware or external services that were not selected.
-8. Return STRICT JSON only.
+3. All features must be achievable within 24 hours.
+4. Use ONLY the selected technologies.
+5. Focus on useful hospital-management functionality.
+6. Do not require hardware.
+7. Do not require unavailable external APIs.
+8. Do not include autonomous medical diagnosis.
+9. Return valid JSON only.
 
-Use exactly this schema:
+Use exactly this JSON structure:
 
 {{
     "project_title": "string",
@@ -407,69 +496,96 @@ Use exactly this schema:
 """
 
             with st.spinner(
-                "AI is defining the hospital MVP..."
+                "Creating hospital MVP..."
             ):
-
-                res = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "You are a technical product manager "
-                                "specializing in healthcare software MVPs."
-                            )
-                        },
-                        {
-                            "role": "user",
-                            "content": scoping_prompt
-                        }
-                    ],
-                    response_format={
-                        "type": "json_object"
-                    },
-                    temperature=0.4
-                )
 
                 try:
 
-                    json_data = json.loads(
-                        res.choices[0].message.content
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "You are a technical product "
+                                    "manager specializing in "
+                                    "hospital software."
+                                )
+                            },
+                            {
+                                "role": "user",
+                                "content": scoping_prompt
+                            }
+                        ],
+                        response_format={
+                            "type": "json_object"
+                        },
+                        temperature=0.4
                     )
 
-                    st.success("✅ Hospital MVP scoped successfully!")
+                    result = json.loads(
+                        response
+                        .choices[0]
+                        .message
+                        .content
+                    )
+
+                    st.success(
+                        "✅ Hospital MVP created successfully!"
+                    )
 
                     st.subheader(
-                        f"🏥 Project: {json_data.get('project_title')}"
+                        "🏥 "
+                        + result.get(
+                            "project_title",
+                            "Hospital Management System"
+                        )
+                    )
+
+                    st.markdown(
+                        "### 🎯 Problem Statement"
                     )
 
                     st.write(
-                        f"**Core Problem:** "
-                        f"{json_data.get('problem_statement')}"
+                        result.get(
+                            "problem_statement",
+                            "Not Provided"
+                        )
                     )
 
-                    st.markdown("### 🚀 MVP Features")
+                    st.markdown(
+                        "### 🚀 MVP Features"
+                    )
 
-                    for feature in json_data.get(
-                        "mvp_features", []
+                    for feature in result.get(
+                        "mvp_features",
+                        []
                     ):
+
                         st.markdown(
                             f"- ✅ {feature}"
                         )
 
-                    st.markdown("### 🛠️ Technology Plan")
+                    st.markdown(
+                        "### 🛠️ Technology Mapping"
+                    )
 
                     st.info(
-                        json_data.get(
-                            "tech_stack_mapping"
+                        result.get(
+                            "tech_stack_mapping",
+                            "Not Provided"
                         )
                     )
 
-                    st.markdown("### 🔮 Future Features")
+                    st.markdown(
+                        "### 🔮 Future Features"
+                    )
 
-                    for feature in json_data.get(
-                        "future_features", []
+                    for feature in result.get(
+                        "future_features",
+                        []
                     ):
+
                         st.markdown(
                             f"- 🔹 {feature}"
                         )
@@ -480,3 +596,23 @@ Use exactly this schema:
                         "The AI returned invalid JSON. "
                         "Please try again."
                     )
+
+                except Exception as error:
+
+                    st.error(
+                        f"Error creating MVP: {error}"
+                    )
+
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.divider()
+
+st.caption(
+    "🏥 AI Hospital Management System | "
+    "AI-generated summaries are for administrative assistance "
+    "and require review by authorized healthcare professionals."
+)
+```
