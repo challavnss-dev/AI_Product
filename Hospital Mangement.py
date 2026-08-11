@@ -695,4 +695,3 @@ st.caption(
     "support and should be reviewed by authorized "
     "hospital professionals."
 )
-```
