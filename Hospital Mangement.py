@@ -1,5 +1,8 @@
+```python
 import os
 import json
+from datetime import datetime
+
 import streamlit as st
 from groq import Groq
 
@@ -9,7 +12,7 @@ from groq import Groq
 # ============================================================
 
 st.set_page_config(
-    page_title="Hospital Management System",
+    page_title="AI Hospital Management",
     page_icon="🏥",
     layout="wide"
 )
@@ -28,7 +31,7 @@ if not api_key:
         api_key = None
 
 if not api_key:
-    st.error("❌ GROQ_API_KEY is missing.")
+    st.error("GROQ_API_KEY is not configured.")
     st.info(
         "Add GROQ_API_KEY in Streamlit Cloud → "
         "Settings → Secrets."
@@ -39,31 +42,80 @@ client = Groq(api_key=api_key)
 
 
 # ============================================================
-# APPLICATION HEADER
+# DEMO DATA
 # ============================================================
 
-st.title("🏥 AI Hospital Management System")
+if "patients" not in st.session_state:
+    st.session_state.patients = [
+        {
+            "id": "P001",
+            "name": "Rahul Kumar",
+            "age": 35,
+            "gender": "Male",
+            "phone": "9876543210",
+            "blood_group": "O+",
+            "history": "No major history reported",
+            "allergies": "None reported",
+            "past_visits": [
+                {
+                    "date": "2026-07-15",
+                    "department": "General Medicine",
+                    "symptoms": "Fever and tiredness",
+                    "notes": "Routine follow-up advised"
+                }
+            ]
+        },
+        {
+            "id": "P002",
+            "name": "Priya Sharma",
+            "age": 29,
+            "gender": "Female",
+            "phone": "9876501234",
+            "blood_group": "A+",
+            "history": "Seasonal allergy reported",
+            "allergies": "Dust",
+            "past_visits": [
+                {
+                    "date": "2026-06-21",
+                    "department": "General Medicine",
+                    "symptoms": "Cold and cough",
+                    "notes": "Follow-up completed"
+                }
+            ]
+        }
+    ]
 
-st.write(
-    "A simple AI-powered hospital management application "
-    "for managing patients, appointments and hospital projects."
-)
+
+if "appointments" not in st.session_state:
+    st.session_state.appointments = [
+        {
+            "patient": "Rahul Kumar",
+            "doctor": "Dr. Anil",
+            "department": "General Medicine",
+            "date": "2026-08-15",
+            "time": "10:00",
+            "status": "Confirmed"
+        }
+    ]
+
+
+if "ai_requests" not in st.session_state:
+    st.session_state.ai_requests = []
 
 
 # ============================================================
 # SIDEBAR
 # ============================================================
 
-st.sidebar.title("🏥 Hospital Menu")
+st.sidebar.title("🏥 Hospital Management")
 
-menu = st.sidebar.radio(
+page = st.sidebar.radio(
     "Select Module",
     [
         "Dashboard",
-        "Patient Management",
-        "Appointment Management",
-        "AI Patient Summary",
-        "Hospital MVP Planner"
+        "Patient Past Data",
+        "AI Health Chatbot",
+        "Doctor Appointments"
     ]
 )
 
@@ -72,99 +124,212 @@ menu = st.sidebar.radio(
 # DASHBOARD
 # ============================================================
 
-if menu == "Dashboard":
+if page == "Dashboard":
 
-    st.header("📊 Hospital Dashboard")
+    st.title("📊 Hospital Dashboard")
+
+    total_patients = len(
+        st.session_state.patients
+    )
+
+    total_appointments = len(
+        st.session_state.appointments
+    )
+
+    pending_requests = len(
+        [
+            request
+            for request in st.session_state.ai_requests
+            if request["status"] == "Pending Doctor Review"
+        ]
+    )
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.metric(
-            "Patients",
-            "120"
+            "Total Patients",
+            total_patients
         )
 
     with col2:
+        st.metric(
+            "Appointments",
+            total_appointments
+        )
+
+    with col3:
         st.metric(
             "Doctors",
             "25"
         )
 
-    with col3:
-        st.metric(
-            "Appointments",
-            "48"
-        )
-
     with col4:
         st.metric(
-            "Departments",
-            "9"
+            "AI Review Requests",
+            pending_requests
         )
 
     st.divider()
 
-    st.subheader("🏥 Hospital System")
+    st.subheader("📅 Upcoming Appointments")
 
-    st.info(
-        "Use the menu on the left to manage patients, "
-        "appointments and AI-powered hospital features."
-    )
+    if st.session_state.appointments:
 
-    st.warning(
-        "Demo application: patient information entered "
-        "here is not permanently stored."
-    )
-
-
-# ============================================================
-# PATIENT MANAGEMENT
-# ============================================================
-
-elif menu == "Patient Management":
-
-    st.header("👤 Patient Management")
-
-    st.subheader("Register New Patient")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        patient_name = st.text_input(
-            "Patient Name",
-            placeholder="Enter patient name"
+        st.dataframe(
+            st.session_state.appointments,
+            use_container_width=True
         )
 
-        patient_age = st.number_input(
+    else:
+
+        st.info(
+            "No appointments available."
+        )
+
+    st.divider()
+
+    st.subheader("🤖 AI Review Requests")
+
+    if st.session_state.ai_requests:
+
+        st.dataframe(
+            st.session_state.ai_requests,
+            use_container_width=True
+        )
+
+    else:
+
+        st.info(
+            "No AI review requests."
+        )
+
+
+# ============================================================
+# PATIENT PAST DATA
+# ============================================================
+
+elif page == "Patient Past Data":
+
+    st.title("👤 Patient Past Data")
+
+    st.write(
+        "Search for a patient and view their previous "
+        "hospital records."
+    )
+
+    patient_search = st.text_input(
+        "Search Patient",
+        placeholder="Enter patient name or patient ID"
+    )
+
+    if patient_search:
+
+        search_text = patient_search.lower()
+
+        matching_patients = [
+            patient
+            for patient in st.session_state.patients
+            if (
+                search_text in patient["name"].lower()
+                or search_text in patient["id"].lower()
+            )
+        ]
+
+        if matching_patients:
+
+            for patient in matching_patients:
+
+                st.subheader(
+                    f"👤 {patient['name']} "
+                    f"({patient['id']})"
+                )
+
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.write(
+                        f"**Age:** {patient['age']}"
+                    )
+                    st.write(
+                        f"**Gender:** {patient['gender']}"
+                    )
+
+                with col2:
+                    st.write(
+                        f"**Blood Group:** "
+                        f"{patient['blood_group']}"
+                    )
+                    st.write(
+                        f"**Phone:** {patient['phone']}"
+                    )
+
+                with col3:
+                    st.write(
+                        f"**Allergies:** "
+                        f"{patient['allergies']}"
+                    )
+                    st.write(
+                        f"**History:** "
+                        f"{patient['history']}"
+                    )
+
+                st.markdown(
+                    "### 📋 Previous Visits"
+                )
+
+                if patient["past_visits"]:
+
+                    st.dataframe(
+                        patient["past_visits"],
+                        use_container_width=True
+                    )
+
+                else:
+
+                    st.info(
+                        "No previous visits available."
+                    )
+
+                st.divider()
+
+        else:
+
+            st.warning(
+                "No patient found."
+            )
+
+    st.subheader("➕ Add Patient")
+
+    with st.form("add_patient_form"):
+
+        new_name = st.text_input(
+            "Patient Name"
+        )
+
+        new_age = st.number_input(
             "Age",
             min_value=0,
             max_value=120,
-            value=18,
-            step=1
+            value=18
         )
 
-        patient_gender = st.selectbox(
+        new_gender = st.selectbox(
             "Gender",
             [
                 "Male",
                 "Female",
-                "Other",
-                "Prefer not to say"
+                "Other"
             ]
         )
 
-        patient_phone = st.text_input(
-            "Phone Number",
-            placeholder="Enter phone number"
+        new_phone = st.text_input(
+            "Phone Number"
         )
 
-    with col2:
-
-        blood_group = st.selectbox(
+        new_blood = st.selectbox(
             "Blood Group",
             [
-                "Not Provided",
                 "A+",
                 "A-",
                 "B+",
@@ -176,241 +341,172 @@ elif menu == "Patient Management":
             ]
         )
 
-        allergies = st.text_area(
-            "Allergies",
-            placeholder="Enter known allergies"
+        new_history = st.text_area(
+            "Medical History"
         )
 
-        medical_history = st.text_area(
-            "Medical History",
-            placeholder="Enter medical history"
+        new_allergies = st.text_area(
+            "Allergies"
         )
+
+        submitted = st.form_submit_button(
+            "Add Patient"
+        )
+
+        if submitted:
+
+            if not new_name.strip():
+
+                st.warning(
+                    "Please enter the patient name."
+                )
+
+            else:
+
+                patient_number = (
+                    len(st.session_state.patients) + 1
+                )
+
+                new_patient = {
+                    "id": f"P{patient_number:03d}",
+                    "name": new_name,
+                    "age": new_age,
+                    "gender": new_gender,
+                    "phone": new_phone,
+                    "blood_group": new_blood,
+                    "history": new_history,
+                    "allergies": new_allergies,
+                    "past_visits": []
+                }
+
+                st.session_state.patients.append(
+                    new_patient
+                )
+
+                st.success(
+                    "Patient added successfully."
+                )
+
+
+# ============================================================
+# AI HEALTH CHATBOT
+# ============================================================
+
+elif page == "AI Health Chatbot":
+
+    st.title("🤖 AI Health Chatbot")
+
+    st.warning(
+        "This demo does not provide a medical diagnosis. "
+        "It identifies information that may require "
+        "professional medical review."
+    )
+
+    st.write(
+        "Enter the patient's information and symptoms. "
+        "The AI will organize the information and determine "
+        "whether a doctor review should be requested."
+    )
+
+    patient_name = st.text_input(
+        "Patient Name"
+    )
+
+    patient_id = st.text_input(
+        "Patient ID",
+        placeholder="Example: P001"
+    )
 
     symptoms = st.text_area(
-        "Reported Symptoms",
-        placeholder="Enter reported symptoms"
+        "Current Symptoms",
+        height=150,
+        placeholder=(
+            "Describe the symptoms, when they started, "
+            "and any relevant information."
+        )
+    )
+
+    additional_information = st.text_area(
+        "Additional Information",
+        height=120,
+        placeholder=(
+            "Previous medical history, allergies, "
+            "recent test information, etc."
+        )
     )
 
     if st.button(
-        "Register Patient",
+        "Analyze and Request Doctor Review",
         type="primary"
     ):
 
         if not patient_name.strip():
 
             st.warning(
-                "Please enter the patient's name."
-            )
-
-        else:
-
-            patient = {
-                "Patient Name": patient_name,
-                "Age": patient_age,
-                "Gender": patient_gender,
-                "Phone": patient_phone,
-                "Blood Group": blood_group,
-                "Allergies": allergies,
-                "Medical History": medical_history,
-                "Symptoms": symptoms
-            }
-
-            st.success(
-                "✅ Patient registered successfully!"
-            )
-
-            st.subheader("Patient Details")
-
-            st.json(patient)
-
-
-# ============================================================
-# APPOINTMENT MANAGEMENT
-# ============================================================
-
-elif menu == "Appointment Management":
-
-    st.header("📅 Appointment Management")
-
-    st.subheader("Schedule Appointment")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        appointment_patient = st.text_input(
-            "Patient Name",
-            placeholder="Enter patient name"
-        )
-
-        doctor_name = st.text_input(
-            "Doctor Name",
-            placeholder="Enter doctor name"
-        )
-
-        department = st.selectbox(
-            "Department",
-            [
-                "General Medicine",
-                "Cardiology",
-                "Neurology",
-                "Orthopedics",
-                "Pediatrics",
-                "Dermatology",
-                "ENT",
-                "Gynecology",
-                "Emergency"
-            ]
-        )
-
-    with col2:
-
-        appointment_date = st.date_input(
-            "Appointment Date"
-        )
-
-        appointment_time = st.time_input(
-            "Appointment Time"
-        )
-
-        appointment_reason = st.text_area(
-            "Reason for Appointment",
-            placeholder="Enter appointment reason"
-        )
-
-    if st.button(
-        "Schedule Appointment",
-        type="primary"
-    ):
-
-        if not appointment_patient.strip():
-
-            st.warning(
                 "Please enter the patient name."
             )
 
-        elif not doctor_name.strip():
+        elif not symptoms.strip():
 
             st.warning(
-                "Please enter the doctor name."
-            )
-
-        else:
-
-            appointment = {
-                "Patient": appointment_patient,
-                "Doctor": doctor_name,
-                "Department": department,
-                "Date": str(appointment_date),
-                "Time": str(appointment_time),
-                "Reason": appointment_reason
-            }
-
-            st.success(
-                "✅ Appointment scheduled successfully!"
-            )
-
-            st.subheader(
-                "Appointment Details"
-            )
-
-            st.json(appointment)
-
-
-# ============================================================
-# AI PATIENT SUMMARY
-# ============================================================
-
-elif menu == "AI Patient Summary":
-
-    st.header("🤖 AI Patient Summary")
-
-    st.write(
-        "Enter patient information and generate a "
-        "structured administrative summary."
-    )
-
-    patient_record = st.text_area(
-        "Patient Record",
-        height=300,
-        placeholder=(
-            "Patient Name: John Doe\n"
-            "Age: 45\n"
-            "Symptoms: Fever and cough\n"
-            "Medical History: Diabetes\n"
-            "Allergies: None reported\n"
-            "Test Results: Temperature 101.2 F\n"
-            "Doctor Notes: Follow-up required"
-        )
-    )
-
-    if st.button(
-        "Generate AI Summary",
-        type="primary"
-    ):
-
-        if not patient_record.strip():
-
-            st.warning(
-                "Please enter patient information."
+                "Please describe the symptoms."
             )
 
         else:
 
             prompt = f"""
-You are an AI administrative assistant
-for a hospital.
+You are an AI hospital administrative
+and patient-triage assistant.
 
-Create a structured summary using ONLY
-the information provided by the user.
+You are NOT a doctor.
 
-PATIENT INFORMATION:
+Review the information below and organize
+it for a qualified healthcare professional.
 
-{patient_record}
+PATIENT NAME:
+{patient_name}
 
-STRICT RULES:
+PATIENT ID:
+{patient_id}
 
-1. Do not invent information.
-2. Do not diagnose the patient.
-3. Do not prescribe medication.
-4. Do not recommend treatment.
-5. Do not modify test results.
-6. Do not assume missing information.
-7. Write "Not Provided" when information
-   is missing.
-8. Keep the summary professional and concise.
+SYMPTOMS:
+{symptoms}
 
-FORMAT:
+ADDITIONAL INFORMATION:
+{additional_information}
 
-PATIENT INFORMATION
-Name:
-Age:
-Other Information:
+IMPORTANT RULES:
 
-SYMPTOMS
--
+1. Do not provide a definitive diagnosis.
+2. Do not prescribe medication.
+3. Do not recommend a treatment plan.
+4. Do not invent symptoms or medical history.
+5. Identify possible areas of concern only.
+6. State clearly that a qualified healthcare
+   professional must make the diagnosis.
+7. Identify whether professional review
+   should be requested based only on the
+   information provided.
+8. If symptoms appear potentially urgent,
+   clearly advise immediate professional care.
 
-MEDICAL HISTORY
--
+Return ONLY valid JSON:
 
-ALLERGIES
--
-
-TEST INFORMATION
--
-
-DOCTOR NOTES
--
-
-FOLLOW-UP INFORMATION
--
-
-MISSING INFORMATION
--
+{{
+    "summary": "short summary",
+    "possible_concerns": [
+        "concern 1",
+        "concern 2"
+    ],
+    "doctor_review_required": true,
+    "urgency": "Routine / Soon / Urgent",
+    "recommended_department": "department",
+    "reason_for_review": "short explanation"
+}}
 """
 
             with st.spinner(
-                "Generating AI summary..."
+                "AI is reviewing the information..."
             ):
 
                 try:
@@ -421,10 +517,10 @@ MISSING INFORMATION
                             {
                                 "role": "system",
                                 "content": (
-                                    "You are a hospital "
-                                    "administrative assistant. "
-                                    "Only summarize information "
-                                    "provided by the user."
+                                    "You are a cautious "
+                                    "hospital administrative "
+                                    "AI assistant. Never "
+                                    "claim to diagnose patients."
                                 )
                             },
                             {
@@ -432,164 +528,10 @@ MISSING INFORMATION
                                 "content": prompt
                             }
                         ],
-                        temperature=0.2
-                    )
-
-                    summary = (
-                        response
-                        .choices[0]
-                        .message
-                        .content
-                    )
-
-                    st.success(
-                        "✅ Summary generated successfully!"
-                    )
-
-                    st.subheader(
-                        "📋 Patient Summary"
-                    )
-
-                    st.markdown(summary)
-
-                except Exception as error:
-
-                    st.error(
-                        "Unable to generate the summary."
-                    )
-
-                    st.code(
-                        str(error)
-                    )
-
-
-# ============================================================
-# HOSPITAL MVP PLANNER
-# ============================================================
-
-elif menu == "Hospital MVP Planner":
-
-    st.header("💡 Hospital MVP Planner")
-
-    st.write(
-        "Use AI to convert a hospital project idea "
-        "into a realistic hackathon MVP."
-    )
-
-    hospital_idea = st.text_input(
-        "Hospital Project Idea",
-        placeholder=(
-            "Example: A system for managing "
-            "patients and doctor appointments"
-        )
-    )
-
-    available_tools = st.multiselect(
-        "Available Technologies",
-        [
-            "Python",
-            "Streamlit",
-            "HTML/CSS",
-            "Groq API",
-            "SQL",
-            "Supabase",
-            "Firebase",
-            "React"
-        ],
-        default=[
-            "Python",
-            "Streamlit",
-            "Groq API"
-        ]
-    )
-
-    if st.button(
-        "Generate Hospital MVP",
-        type="primary"
-    ):
-
-        if not hospital_idea.strip():
-
-            st.warning(
-                "Please enter a hospital project idea."
-            )
-
-        elif not available_tools:
-
-            st.warning(
-                "Please select at least one technology."
-            )
-
-        else:
-
-            mvp_prompt = f"""
-You are a Senior Technical Product Manager.
-
-Create a realistic 24-hour hackathon MVP
-for the following hospital project.
-
-PROJECT IDEA:
-
-{hospital_idea}
-
-AVAILABLE TECHNOLOGIES:
-
-{", ".join(available_tools)}
-
-INSTRUCTIONS:
-
-1. Identify the core problem.
-2. Define exactly 3 MVP features.
-3. Features must be realistic for 24 hours.
-4. Use only the available technologies.
-5. Focus on hospital management.
-6. Do not include autonomous medical diagnosis.
-7. Do not require hardware.
-8. Return JSON only.
-
-Return this exact structure:
-
-{{
-    "project_title": "string",
-    "problem_statement": "string",
-    "mvp_features": [
-        "Feature 1",
-        "Feature 2",
-        "Feature 3"
-    ],
-    "technology_plan": "string",
-    "future_features": [
-        "Feature 1",
-        "Feature 2"
-    ]
-}}
-"""
-
-            with st.spinner(
-                "Generating hospital MVP..."
-            ):
-
-                try:
-
-                    response = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": (
-                                    "You are an expert "
-                                    "technical product manager."
-                                )
-                            },
-                            {
-                                "role": "user",
-                                "content": mvp_prompt
-                            }
-                        ],
                         response_format={
                             "type": "json_object"
                         },
-                        temperature=0.4
+                        temperature=0.1
                     )
 
                     result = (
@@ -599,88 +541,260 @@ Return this exact structure:
                         .content
                     )
 
-                    data = json.loads(result)
-
-                    st.success(
-                        "✅ Hospital MVP generated!"
+                    analysis = json.loads(
+                        result
                     )
 
                     st.subheader(
-                        "🏥 "
-                        + data.get(
-                            "project_title",
-                            "Hospital Management System"
-                        )
-                    )
-
-                    st.markdown(
-                        "### 🎯 Problem Statement"
+                        "📋 AI Review"
                     )
 
                     st.write(
-                        data.get(
-                            "problem_statement",
-                            "Not Provided"
+                        analysis.get(
+                            "summary",
+                            "Not provided"
                         )
                     )
 
                     st.markdown(
-                        "### 🚀 MVP Features"
+                        "### Possible Concerns"
                     )
 
-                    features = data.get(
-                        "mvp_features",
+                    for concern in analysis.get(
+                        "possible_concerns",
                         []
-                    )
-
-                    for feature in features:
+                    ):
 
                         st.markdown(
-                            f"- ✅ {feature}"
+                            f"- {concern}"
                         )
 
-                    st.markdown(
-                        "### 🛠️ Technology Plan"
+                    urgency = analysis.get(
+                        "urgency",
+                        "Routine"
                     )
 
-                    st.info(
-                        data.get(
-                            "technology_plan",
-                            "Not Provided"
+                    if urgency == "Urgent":
+
+                        st.error(
+                            "⚠️ Urgent professional "
+                            "medical review may be required."
                         )
+
+                    elif urgency == "Soon":
+
+                        st.warning(
+                            "Professional medical review "
+                            "should be considered soon."
+                        )
+
+                    else:
+
+                        st.info(
+                            "Routine professional review "
+                            "may be appropriate."
+                        )
+
+                    review_required = analysis.get(
+                        "doctor_review_required",
+                        False
                     )
 
-                    st.markdown(
-                        "### 🔮 Future Features"
-                    )
+                    if review_required:
 
-                    future_features = data.get(
-                        "future_features",
-                        []
-                    )
+                        st.success(
+                            "👨‍⚕️ Doctor review request created."
+                        )
 
-                    for feature in future_features:
+                        appointment_request = {
+                            "patient": patient_name,
+                            "patient_id": patient_id,
+                            "department": analysis.get(
+                                "recommended_department",
+                                "General Medicine"
+                            ),
+                            "reason": analysis.get(
+                                "reason_for_review",
+                                "Professional review requested"
+                            ),
+                            "urgency": urgency,
+                            "requested_at": datetime.now().strftime(
+                                "%Y-%m-%d %H:%M"
+                            ),
+                            "status": "Pending Doctor Review"
+                        }
 
-                        st.markdown(
-                            f"- 🔹 {feature}"
+                        st.session_state.ai_requests.append(
+                            appointment_request
+                        )
+
+                        st.subheader(
+                            "📅 Appointment Request"
+                        )
+
+                        st.json(
+                            appointment_request
+                        )
+
+                        st.info(
+                            "The request has been sent to the "
+                            "Doctor Appointments module. A "
+                            "doctor or authorized hospital "
+                            "staff member should confirm the "
+                            "appointment."
+                        )
+
+                    else:
+
+                        st.info(
+                            "No doctor review request was "
+                            "created from the information "
+                            "provided."
                         )
 
                 except json.JSONDecodeError:
 
                     st.error(
-                        "The AI returned invalid JSON. "
+                        "The AI response could not be processed. "
                         "Please try again."
                     )
 
                 except Exception as error:
 
                     st.error(
-                        "Unable to generate the MVP."
+                        "AI service error."
                     )
 
                     st.code(
                         str(error)
                     )
+
+
+# ============================================================
+# DOCTOR APPOINTMENTS
+# ============================================================
+
+elif page == "Doctor Appointments":
+
+    st.title("👨‍⚕️ Doctor Appointments")
+
+    st.subheader(
+        "AI-Generated Doctor Review Requests"
+    )
+
+    if st.session_state.ai_requests:
+
+        for index, request in enumerate(
+            st.session_state.ai_requests
+        ):
+
+            with st.container(border=True):
+
+                st.write(
+                    f"**Patient:** "
+                    f"{request['patient']}"
+                )
+
+                st.write(
+                    f"**Patient ID:** "
+                    f"{request['patient_id']}"
+                )
+
+                st.write(
+                    f"**Department:** "
+                    f"{request['department']}"
+                )
+
+                st.write(
+                    f"**Urgency:** "
+                    f"{request['urgency']}"
+                )
+
+                st.write(
+                    f"**Reason:** "
+                    f"{request['reason']}"
+                )
+
+                st.write(
+                    f"**Status:** "
+                    f"{request['status']}"
+                )
+
+                if request["status"] == (
+                    "Pending Doctor Review"
+                ):
+
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+
+                        if st.button(
+                            "Confirm Appointment",
+                            key=f"confirm_{index}"
+                        ):
+
+                            request["status"] = (
+                                "Confirmed"
+                            )
+
+                            st.session_state.appointments.append(
+                                {
+                                    "patient": request["patient"],
+                                    "doctor": "Doctor To Be Assigned",
+                                    "department": request["department"],
+                                    "date": "To Be Scheduled",
+                                    "time": "To Be Scheduled",
+                                    "status": "Confirmed"
+                                }
+                            )
+
+                            st.success(
+                                "Appointment confirmed."
+                            )
+
+                            st.rerun()
+
+                    with col2:
+
+                        if st.button(
+                            "Reject Request",
+                            key=f"reject_{index}"
+                        ):
+
+                            request["status"] = (
+                                "Rejected"
+                            )
+
+                            st.warning(
+                                "Request rejected."
+                            )
+
+                            st.rerun()
+
+    else:
+
+        st.info(
+            "There are no AI-generated appointment requests."
+        )
+
+    st.divider()
+
+    st.subheader(
+        "📅 Confirmed Appointments"
+    )
+
+    if st.session_state.appointments:
+
+        st.dataframe(
+            st.session_state.appointments,
+            use_container_width=True
+        )
+
+    else:
+
+        st.info(
+            "No confirmed appointments."
+        )
 
 
 # ============================================================
@@ -691,7 +805,7 @@ st.divider()
 
 st.caption(
     "🏥 AI Hospital Management System | "
-    "AI-generated content is for administrative "
-    "support and should be reviewed by authorized "
-    "hospital professionals."
+    "Demo application. AI output is not a medical diagnosis "
+    "and must be reviewed by qualified healthcare professionals."
 )
+```
