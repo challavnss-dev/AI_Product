@@ -4,9 +4,9 @@ import time
 import json
 from groq import Groq
 
-# ---------------------------------------------------------
+# =========================================================
 # PAGE CONFIGURATION
-# ---------------------------------------------------------
+# =========================================================
 
 st.set_page_config(
     page_title="Healthcare Management Launch Syndicate",
@@ -16,13 +16,13 @@ st.set_page_config(
 
 st.title("🏥 Healthcare Management Launch Syndicate")
 st.write(
-    "Multi-Agent Orchestration: Scoping a 4-week V1 healthcare "
-    "management launch by balancing Product Management and Healthcare Strategy."
+    "Multi-Agent AI system for planning a healthcare management "
+    "product and creating a 4-week MVP."
 )
 
-# ---------------------------------------------------------
+# =========================================================
 # GROQ API CONFIGURATION
-# ---------------------------------------------------------
+# =========================================================
 
 api_key = os.environ.get("GROQ_API_KEY")
 
@@ -39,18 +39,25 @@ if not api_key:
 client = Groq(api_key=api_key)
 
 
-# ---------------------------------------------------------
-# AGENT FUNCTION
-# ---------------------------------------------------------
+# =========================================================
+# AI AGENT FUNCTION
+# =========================================================
 
 def run_agent(persona, prompt_input, json_mode=False):
+
     start_time = time.time()
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "system", "content": persona},
-            {"role": "user", "content": prompt_input}
+            {
+                "role": "system",
+                "content": persona
+            },
+            {
+                "role": "user",
+                "content": prompt_input
+            }
         ],
         temperature=0.2,
         response_format=(
@@ -65,266 +72,466 @@ def run_agent(persona, prompt_input, json_mode=False):
     return response.choices[0].message.content, latency
 
 
+# =========================================================
+# USER INPUT SECTION
+# =========================================================
+
+st.header("📝 Healthcare Product Configuration")
+
 # ---------------------------------------------------------
-# RAW HEALTHCARE IDEA
+# OPTION SELECTION
 # ---------------------------------------------------------
 
-raw_idea = st.text_input(
-    "Enter your healthcare management idea:",
-    value=(
-        "A mobile app connecting patients with local healthcare "
-        "providers for easy appointment booking and medical care."
-    )
+st.subheader("1. Select Healthcare Management Type")
+
+healthcare_type = st.radio(
+    "Choose one:",
+    [
+        "Hospital Management",
+        "Clinic Management",
+        "Patient Management",
+        "Doctor Management",
+        "Pharmacy Management",
+        "Appointment Management"
+    ]
 )
 
 
 # ---------------------------------------------------------
-# START MULTI-AGENT PROCESS
+# CHECKBOXES
 # ---------------------------------------------------------
 
+st.subheader("2. Select Features You Want")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    appointment_booking = st.checkbox(
+        "📅 Appointment Booking"
+    )
+
+    patient_records = st.checkbox(
+        "📋 Patient Records"
+    )
+
+    doctor_search = st.checkbox(
+        "👨‍⚕️ Doctor Search"
+    )
+
+with col2:
+    reminders = st.checkbox(
+        "🔔 Appointment Reminders"
+    )
+
+    prescription_management = st.checkbox(
+        "💊 Prescription Management"
+    )
+
+    hospital_management = st.checkbox(
+        "🏥 Hospital Management"
+    )
+
+with col3:
+    billing = st.checkbox(
+        "💳 Billing Management"
+    )
+
+    notifications = st.checkbox(
+        "📢 Notifications"
+    )
+
+    reports = st.checkbox(
+        "📊 Healthcare Reports"
+    )
+
+
+# ---------------------------------------------------------
+# TARGET USER SELECTION
+# ---------------------------------------------------------
+
+st.subheader("3. Select Target Users")
+
+target_users = st.multiselect(
+    "Who will use this application?",
+    [
+        "Patients",
+        "Doctors",
+        "Nurses",
+        "Hospital Administrators",
+        "Clinic Staff",
+        "Pharmacists",
+        "Caregivers"
+    ],
+    default=["Patients"]
+)
+
+
+# ---------------------------------------------------------
+# RAW IDEA
+# ---------------------------------------------------------
+
+st.subheader("4. Enter Your Healthcare Idea")
+
+raw_idea = st.text_area(
+    "Describe your idea:",
+    value=(
+        "A mobile app that helps patients find healthcare providers "
+        "and manage their appointments."
+    ),
+    height=120
+)
+
+
+# =========================================================
+# COLLECT SELECTED FEATURES
+# =========================================================
+
+selected_features = []
+
+if appointment_booking:
+    selected_features.append("Appointment Booking")
+
+if patient_records:
+    selected_features.append("Patient Records")
+
+if doctor_search:
+    selected_features.append("Doctor Search")
+
+if reminders:
+    selected_features.append("Appointment Reminders")
+
+if prescription_management:
+    selected_features.append("Prescription Management")
+
+if hospital_management:
+    selected_features.append("Hospital Management")
+
+if billing:
+    selected_features.append("Billing Management")
+
+if notifications:
+    selected_features.append("Notifications")
+
+if reports:
+    selected_features.append("Healthcare Reports")
+
+
+# =========================================================
+# DISPLAY USER SELECTION
+# =========================================================
+
+st.subheader("📌 Your Selection")
+
+st.write(
+    f"**Healthcare Type:** {healthcare_type}"
+)
+
+st.write(
+    f"**Target Users:** "
+    f"{', '.join(target_users) if target_users else 'None selected'}"
+)
+
+st.write(
+    f"**Selected Features:** "
+    f"{', '.join(selected_features) if selected_features else 'None selected'}"
+)
+
+
+# =========================================================
+# START AI PROCESS
+# =========================================================
+
 if st.button(
-    "🏥 Initiate Healthcare Launch Sprint",
+    "🚀 Initiate Healthcare Launch Sprint",
     type="primary"
 ):
 
     if not raw_idea:
-        st.warning("Please provide a healthcare management idea.")
+        st.warning("Please enter a healthcare idea.")
+
+    elif not target_users:
+        st.warning("Please select at least one target user.")
+
+    elif not selected_features:
+        st.warning("Please select at least one feature.")
 
     else:
 
         total_latency = 0
 
         with st.status(
-            "Orchestrating Healthcare Agency Team...",
+            "🤖 Orchestrating Healthcare AI Agents...",
             expanded=True
         ) as status:
 
-            # =====================================================
-            # AGENT 1: HEALTHCARE MARKET RESEARCHER
-            # =====================================================
+            # =================================================
+            # AGENT 1
+            # =================================================
 
             st.write(
-                "🔍 **Agent 1 (Healthcare Market Researcher):** "
-                "Analyzing patients, providers, and healthcare gaps..."
+                "🔍 **Agent 1: Healthcare Market Researcher**"
             )
 
             researcher_prompt = """
 You are a Healthcare Market Researcher.
 
-INPUT: A raw healthcare management product idea.
+Analyze the healthcare management product idea.
 
-OUTPUT FORMAT: Return exactly 3 bullet points:
+Return exactly three bullet points:
 
-- Target Audience: [who the healthcare product is for]
-- Market Gap: [what is currently missing in healthcare management]
-- Core Problem: [the main healthcare management pain point]
+- Target Audience: [who the product is for]
+- Market Gap: [what is missing]
+- Core Problem: [main healthcare management problem]
 
-Focus on patients, healthcare providers, clinics, and healthcare
-administration where relevant.
+Consider the user's selected healthcare type,
+target users, and requested features.
 
-Do not add any conversational text.
+Do not add conversational text.
+"""
+
+            research_input = f"""
+RAW IDEA:
+{raw_idea}
+
+HEALTHCARE TYPE:
+{healthcare_type}
+
+TARGET USERS:
+{target_users}
+
+SELECTED FEATURES:
+{selected_features}
 """
 
             research, lat = run_agent(
                 researcher_prompt,
-                f"RAW HEALTHCARE IDEA:\n{raw_idea}"
+                research_input
             )
 
             total_latency += lat
 
             with st.expander(
-                f"Healthcare Research Data ({lat}s)"
+                f"🔍 Research Results ({lat}s)"
             ):
                 st.write(research)
 
 
-            # =====================================================
-            # AGENT 2: HEALTHCARE TECH PRODUCT MANAGER
-            # =====================================================
+            # =================================================
+            # AGENT 2
+            # =================================================
 
             st.write(
-                "⚙️ **Agent 2 (Healthcare Tech PM):** "
-                "Scoping the 4-week functional V1..."
+                "⚙️ **Agent 2: Healthcare Technical Product Manager**"
             )
 
             tech_pm_prompt = """
 You are a Healthcare Technical Product Manager.
 
-INPUT: Healthcare Market Research data.
+Using the market research and user's selected features,
+create exactly 3 realistic MVP features that can be built
+within four weeks.
 
-OUTPUT FORMAT: Return exactly 3 core MVP features that can
-realistically be built in 4 weeks.
+Prioritize the features selected by the user.
 
-Format as:
+Format:
 
-1. [Feature Name]: [Brief description]
-2. [Feature Name]: [Brief description]
-3. [Feature Name]: [Brief description]
+1. [Feature Name]: [Description]
+2. [Feature Name]: [Description]
+3. [Feature Name]: [Description]
 
-Focus on practical healthcare management features such as
-appointment management, provider discovery, reminders, or
-basic patient information management.
+Do not add unnecessary features.
 
-Ruthlessly cut feature bloat.
-
-Do not include medical diagnosis or autonomous treatment
-recommendations.
+Do not provide medical diagnosis or autonomous treatment.
 """
 
             tech_scope, lat = run_agent(
                 tech_pm_prompt,
-                f"HEALTHCARE RESEARCH:\n{research}"
+                f"""
+RESEARCH:
+{research}
+
+SELECTED HEALTHCARE TYPE:
+{healthcare_type}
+
+TARGET USERS:
+{target_users}
+
+USER SELECTED FEATURES:
+{selected_features}
+"""
             )
 
             total_latency += lat
 
             with st.expander(
-                f"Healthcare Tech Scope ({lat}s)"
+                f"⚙️ MVP Technical Scope ({lat}s)"
             ):
                 st.write(tech_scope)
 
 
-            # =====================================================
-            # AGENT 3: HEALTHCARE BRAND STRATEGIST
-            # =====================================================
+            # =================================================
+            # AGENT 3
+            # =================================================
 
             st.write(
-                "✨ **Agent 3 (Healthcare Brand Strategist):** "
-                "Developing trust-focused messaging..."
+                "✨ **Agent 3: Healthcare Brand Strategist**"
             )
 
             brand_prompt = """
 You are a Healthcare Brand Strategist.
 
-INPUT: Healthcare Market Research data.
+Create a healthcare brand strategy based on the research.
 
-OUTPUT FORMAT: Return exactly two lines:
+Return exactly two lines:
 
-Brand Positioning: [2 sentence value proposition focused on
-trust, accessibility, convenience, and better healthcare management]
+Brand Positioning: [2 sentence value proposition]
 
-Brand Tone: [3 keywords, e.g., Trustworthy, Caring, Reliable]
+Brand Tone: [3 keywords]
 
-The brand must avoid making unsupported medical claims.
+The brand should communicate trust, accessibility,
+simplicity, reliability, and patient-centered care.
+
+Do not make unsupported medical claims.
 """
 
             brand_strategy, lat = run_agent(
                 brand_prompt,
-                f"HEALTHCARE RESEARCH:\n{research}"
+                f"""
+RESEARCH:
+{research}
+
+HEALTHCARE TYPE:
+{healthcare_type}
+
+TARGET USERS:
+{target_users}
+"""
             )
 
             total_latency += lat
 
             with st.expander(
-                f"Healthcare Brand Strategy ({lat}s)"
+                f"✨ Brand Strategy ({lat}s)"
             ):
                 st.write(brand_strategy)
 
 
-            # =====================================================
-            # AGENT 4: HEALTHCARE QUALITY GATE CRITIC
-            # =====================================================
+            # =================================================
+            # AGENT 4
+            # =================================================
 
             st.write(
-                "⚖️ **Agent 4 (Healthcare Quality Gate):** "
-                "Checking safety, privacy, and product conflicts..."
+                "⚖️ **Agent 4: Healthcare Quality Gate**"
             )
 
             critic_prompt = """
 You are a Healthcare Quality Gate Critic.
 
-INPUT:
-1. Healthcare Tech PM scope
-2. Healthcare Brand Strategy
+Review the technical scope and brand strategy.
 
-OUTPUT FORMAT:
-Return a short paragraph identifying conflicts between the
-technical scope and brand promises.
-
-Pay particular attention to:
+Identify possible conflicts involving:
 
 - Patient safety
-- Privacy and sensitive health information
+- Privacy
+- Healthcare data
 - Reliability
 - Unrealistic medical claims
-- Whether the MVP promises more than it can deliver
+- Feature overload
+- User expectations
 
-If there are no conflicts, state:
+Return a short paragraph.
 
-'No conflicts identified'
+If there are no major conflicts, say:
+"No conflicts identified"
 """
 
             critique, lat = run_agent(
                 critic_prompt,
                 f"""
-HEALTHCARE TECH SCOPE:
+TECHNICAL SCOPE:
 {tech_scope}
 
-HEALTHCARE BRAND STRATEGY:
+BRAND STRATEGY:
 {brand_strategy}
+
+HEALTHCARE TYPE:
+{healthcare_type}
+
+SELECTED FEATURES:
+{selected_features}
 """
             )
 
             total_latency += lat
 
             with st.expander(
-                f"Healthcare Quality Critique ({lat}s)"
+                f"⚖️ Quality Critique ({lat}s)"
             ):
                 st.write(critique)
 
 
-            # =====================================================
-            # AGENT 5: HEALTHCARE LEAD SYNTHESIZER
-            # =====================================================
+            # =================================================
+            # AGENT 5
+            # =================================================
 
             st.write(
-                "🚀 **Agent 5 (Healthcare Lead Synthesizer):** "
-                "Finalizing Go-To-Market Healthcare Brief..."
+                "🚀 **Agent 5: Lead Healthcare Synthesizer**"
             )
 
             reviser_prompt = """
 You are the Lead Healthcare Product Synthesizer.
 
-Take the healthcare technology scope, brand strategy,
+Combine the research, technical scope, brand strategy,
 and quality critique.
 
-Resolve the identified conflicts and output a structured
-JSON Go-To-Market Launch Brief.
+Create a final 4-week healthcare management launch brief.
+
+Return VALID JSON ONLY.
 
 Schema:
 
 {
-  "product_name": "string",
-  "target_audience": "string",
-  "four_week_v1_features": [
-    "list of strict MVP features"
-  ],
-  "brand_positioning": "string",
-  "resolved_tradeoffs": "string explaining how the
-  critic's concerns were solved"
+    "product_name": "string",
+    "healthcare_type": "string",
+    "target_audience": "string",
+    "four_week_v1_features": [
+        "feature 1",
+        "feature 2",
+        "feature 3"
+    ],
+    "brand_positioning": "string",
+    "resolved_tradeoffs": "string"
 }
 
-Requirements:
+Keep the MVP realistic.
 
-- Focus on healthcare management.
-- Keep the MVP realistic for 4 weeks.
-- Prioritize patient convenience and provider coordination.
-- Do not make unsupported medical diagnosis or treatment claims.
-- Do not promise medical outcomes.
-- Return valid JSON only.
+Do not make unsupported medical claims.
+Do not provide medical diagnosis or treatment recommendations.
 """
 
             final_brief, lat = run_agent(
                 reviser_prompt,
                 f"""
-HEALTHCARE TECH:
+RESEARCH:
+{research}
+
+TECHNICAL SCOPE:
 {tech_scope}
 
-HEALTHCARE BRAND:
+BRAND STRATEGY:
 {brand_strategy}
 
-HEALTHCARE CRITIQUE:
+QUALITY CRITIQUE:
 {critique}
+
+HEALTHCARE TYPE:
+{healthcare_type}
+
+TARGET USERS:
+{target_users}
+
+SELECTED FEATURES:
+{selected_features}
 """,
                 json_mode=True
             )
@@ -333,7 +540,7 @@ HEALTHCARE CRITIQUE:
 
             status.update(
                 label=(
-                    f"Healthcare Launch Sprint Complete! "
+                    f"✅ Healthcare Launch Complete! "
                     f"Total Latency: {round(total_latency, 2)}s"
                 ),
                 state="complete",
@@ -342,46 +549,75 @@ HEALTHCARE CRITIQUE:
 
 
         # =====================================================
-        # DISPLAY FINAL RESULT
+        # FINAL RESULT
         # =====================================================
+
+        st.divider()
+
+        st.header("🏥 Final Healthcare Launch Brief")
 
         try:
 
             json_data = json.loads(final_brief)
 
             st.subheader(
-                f"🏥 {json_data.get('product_name')} "
-                f"- Healthcare Go-To-Market Brief"
+                f"🚀 {json_data.get('product_name')}"
             )
 
-            st.write(
-                f"**Target Audience:** "
-                f"{json_data.get('target_audience')}"
-            )
+            col1, col2 = st.columns(2)
 
-            st.markdown(
-                "**4-Week Functional V1 Features:**"
+            with col1:
+                st.info(
+                    f"**Healthcare Type:** "
+                    f"{json_data.get('healthcare_type')}"
+                )
+
+            with col2:
+                st.info(
+                    f"**Target Audience:** "
+                    f"{json_data.get('target_audience')}"
+                )
+
+            st.subheader(
+                "⚙️ 4-Week MVP Features"
             )
 
             for feature in json_data.get(
-                "four_week_v1_features", []
+                "four_week_v1_features",
+                []
             ):
-                st.markdown(f"- {feature}")
+                st.checkbox(
+                    feature,
+                    value=True,
+                    disabled=True
+                )
 
-            st.info(
-                f"**Brand Positioning:** "
-                f"{json_data.get('brand_positioning')}"
+            st.subheader(
+                "✨ Brand Positioning"
+            )
+
+            st.success(
+                json_data.get(
+                    "brand_positioning",
+                    ""
+                )
+            )
+
+            st.subheader(
+                "⚖️ Resolved Tradeoffs"
             )
 
             st.warning(
-                f"**Resolved Tradeoffs:** "
-                f"{json_data.get('resolved_tradeoffs')}"
+                json_data.get(
+                    "resolved_tradeoffs",
+                    ""
+                )
             )
 
-        except Exception as e:
+        except Exception:
 
             st.error(
-                "The final response could not be parsed as JSON."
+                "Unable to parse the final AI response."
             )
 
             st.markdown(final_brief)
